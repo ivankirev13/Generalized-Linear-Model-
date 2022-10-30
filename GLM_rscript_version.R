@@ -1,38 +1,18 @@
----
-title: "Generalized Linear Models"
-output:
-  pdf_document: default
-  html_document:
-    df_print: paged
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-# Data Exploration
-```{r}
 library(ggplot2)
 library(gridExtra)
 library(corrplot)
 library(dplyr)
 data <- read.csv("1738166.csv")
-```
 
-```{r}
 #producing a summary of our data
 summary(data)
-```
 
-
-```{r}
 ggplot(data, aes(x = time, fill = recode_factor(batch, '1' = '1', '2' = '2'))) +
   ggtitle("Histogram for blood clotting time ") +
   geom_histogram(position = "identity", alpha = 0.5, bins=40) + 
   scale_fill_manual(values=c("deepskyblue", "indianred1"))+
   theme(plot.title = element_text(hjust = 0.5))
-```
 
-```{r}
 data_batch1 = data[1:12, ]
 data_batch2 = data[13:24, ]
 log_con = log(data_batch1$concentration)
@@ -40,10 +20,7 @@ time_batch_1 = data_batch1$time
 time_batch_2 = data_batch2$time
 
 corrplot(cor(cbind(log_con, time_batch_1, time_batch_2)),method="number", number.digits = 6, col=c("deepskyblue", "white", "indianred1"), tl.col = c("black", "deepskyblue", "indianred1"))
-```
 
-
-```{r}
 plot1 <- ggplot(data, aes(x=as.factor(recode_factor(batch, '1' = '1', '2' = '2')), y=time, color=batch)) + 
   scale_color_manual(values=c("deepskyblue", "indianred1"))+
   geom_boxplot( alpha=0.3) +
@@ -60,39 +37,22 @@ plot2 <- ggplot(data, aes(x=as.factor(batch), y=concentration, color=batch)) +
   xlab("Batch")+ylab("Concentration") +
   coord_flip()
 grid.arrange(plot1, plot2)
-```
-
-
-
-
 
 ########################################################################################################
 ###################################### LINEAR MODEL ####################################################
 ########################################################################################################
 
-
-
-```{r}
 l_con = log(data$concentration)
 batch = data$batch
 time = data$time
 mylm = lm(time ~ l_con * batch +  I(l_con^2)*batch)
 summary(mylm)
-```
-
-```{r}
 plot(mylm)
-```
 
 ########################################################################################################
 ###################################### GENERALISED LINEAR MODEL ########################################
 ########################################################################################################
 
-
-
-
-
-```{r}
 IWLS <- function(x, y){
   
   # Inverse link function
@@ -128,10 +88,6 @@ IWLS <- function(x, y){
   return(list(beta, new_deviance, w, mu))
 }
 
-```
-
-
-```{r}
 y = data$time
 x_1 = cbind(l_con, batch)
 x_2 = cbind(l_con, batch, l_con*batch)
@@ -142,48 +98,27 @@ for (x in list(x_1, x_2, x_3, x_4)){
   print(IWLS(x, y)[1])
 }
 
-```
-
-
-
-```{r}
 for (x in list(x_1, x_2, x_3, x_4)){
   print(IWLS(x, y)[2])
 }
-```
 
-
-
-```{r}
 myglm1 <- glm(time ~ l_con + batch + l_con:batch + I(l_con^2):batch, family = Gamma(link="inverse"))
 summary(myglm1)
-```
 
-```{r}
 myglm2 <- glm(formula = time ~ l_con + batch + l_con:batch, family = Gamma(link="inverse"))
 summary(myglm2)
-```
 
-
-```{r}
-plot(myglm1)
-```
-```{r}
 plot(myglm2)
-```
-```{r}
 myglm3 <- glm(time ~ l_con + batch + l_con:batch, family = Gamma(link="inverse"))
 summary(myglm3)
-```
-```{r}
+
 x_final = cbind(l_con, batch, l_con*batch)
 w_final = IWLS(x_final, y)[[3]]
 defiance_final = IWLS(x_final,y)[[2]]
 mu_final = IWLS(x_final,y)[[4]]
 beta_final = IWLS(x_final, y)[[1]]
-```
 
-```{r}
+
 X_final = cbind(1,x_final)
 J = t(X_final)%*% diag(as.vector(w_final))%*%X_final
 pear = sum((y-mu_final)^2/mu_final^2)
@@ -191,24 +126,21 @@ phi = pear/20
 invJ = phi*solve(J)
 beta.sd = sqrt(as.vector(diag(invJ)))
 beta.sd
-```
-```{r}
+
 se = c(0.0024129, 0.0010021, 0.0018023, 0.0007403)
 z <- beta_final/beta.sd
 2*pt(-abs(z), df = 20)
-```
-```{r}
+
 t = log(50)
 x_star_1 = c(1, t, 1, t)
 x_star_2 = c(1, t, 2, 2*t)
 CI_1 = c(-1/(t(x_star_1)%*%beta_final - 1.96*sqrt(t(x_star_1)%*%invJ%*%x_star_1)) , -1/(t(x_star_1)%*%beta_final + 1.96*sqrt(t(x_star_1)%*%invJ%*%x_star_1)))
 CI_1
-```
-```{r}
+
 CI_2 = c(-1/(t(x_star_2)%*%beta_final - 1.96*sqrt(t(x_star_2)%*%invJ%*%x_star_2)) , -1/(t(x_star_2)%*%beta_final + 1.96*sqrt(t(x_star_2)%*%invJ%*%x_star_2)))
 CI_2
-```
-```{r}
+
+
 CI_1_L = c()
 CI_1_U = c()
 CI_2_L = c()
@@ -222,9 +154,7 @@ for (m in r){
   CI_2_L = c(CI_2_L,-1/(t(x_star_2)%*%beta_final - 1.96*sqrt(t(x_star_2)%*%invJ%*%x_star_2)))
   CI_2_U = c(CI_2_U, -1/(t(x_star_2)%*%beta_final + 1.96*sqrt(t(x_star_2)%*%invJ%*%x_star_2)))
 }
-```
 
-```{r}
 plot(log(data$concentration),
      data$time,
      col=c("indianred1","deepskyblue3")[data$batch], 
@@ -243,7 +173,3 @@ legend(3.75,
        legend=c("Clotting factor 1", "Clotting factor 2"), 
        col=c("indianred", "deepskyblue"),
        pch = 16)
-
-```
-
-
