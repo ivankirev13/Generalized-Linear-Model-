@@ -1,6 +1,4 @@
-# Generalized-Linear-Model-
- A Statistical Analysis of Data from a Clinical Trial
-
+# Generalized-Linear-Model
 
 The aim of this report is to provide a statistical analysis of the data from a clinical trial that will help study the effect of the clotting agent concentration on the time taken for blood to clot.
 
